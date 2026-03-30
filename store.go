@@ -55,9 +55,13 @@ func (s *Store) SetQR(screenID string, data []byte) {
 }
 
 func (s *Store) Add(screenID string, data []byte) error {
+	compressed, err := compressImage(data)
+	if err != nil {
+		return fmt.Errorf("compressing image: %w", err)
+	}
 	dir := filepath.Join(s.dataDir, screenID)
-	path := filepath.Join(dir, fmt.Sprintf("%d.bin", time.Now().UnixNano()))
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	path := filepath.Join(dir, fmt.Sprintf("%d.jpg", time.Now().UnixNano()))
+	if err := os.WriteFile(path, compressed, 0644); err != nil {
 		return fmt.Errorf("writing image: %w", err)
 	}
 	s.mu.Lock()
