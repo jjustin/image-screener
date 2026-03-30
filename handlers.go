@@ -44,12 +44,12 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
 </head>
 <body class="upload-body">
   <h1>Screen {{.ID}}</h1>
-  <div id="preview-wrap">
-    <img id="preview" src="" alt="" hidden>
-  </div>
   <div class="pick-buttons">
     <button class="file-label" id="btn-camera">Take Photo</button>
     <button class="file-label" id="btn-gallery">Choose from Gallery</button>
+  </div>
+  <div id="preview-wrap">
+    <img id="preview" src="" alt="" hidden>
   </div>
   <input id="input-camera"  type="file" accept="image/*" capture="environment" hidden>
   <input id="input-gallery" type="file" accept="image/*" hidden>
@@ -75,6 +75,7 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
         preview.src = URL.createObjectURL(file);
         preview.hidden = false;
         submitBtn.disabled = false;
+        status.className = '';
         status.textContent = '';
       });
     });
@@ -89,17 +90,20 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
       try {
         const res = await fetch('/api/upload/' + id, { method: 'POST', body: fd });
         if (res.ok) {
-          status.textContent = 'Image sent!';
+          status.className = 'success';
+          status.textContent = 'Upload successful. You image will be eventually displayed on the screen.';
           inputCamera.value = '';
           inputGallery.value = '';
           preview.hidden = true;
           preview.src = '';
           submitBtn.disabled = true;
         } else {
+          status.className = 'error';
           status.textContent = 'Error ' + res.status;
           submitBtn.disabled = false;
         }
       } catch (e) {
+        status.className = 'error';
         status.textContent = 'Network error';
         submitBtn.disabled = false;
       }
