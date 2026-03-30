@@ -191,7 +191,10 @@ func (h *Handlers) APIUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.store.Add(id, ImageEntry{Data: data, MIMEType: mime})
+	if err := h.store.Add(id, data); err != nil {
+		http.Error(w, "storage error", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 

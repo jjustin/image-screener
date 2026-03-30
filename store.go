@@ -1,8 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
+	"time"
 )
 
 type ImageEntry struct {
@@ -11,20 +16,36 @@ type ImageEntry struct {
 }
 
 type Store struct {
-	mu     sync.RWMutex
-	images map[string][]ImageEntry
-	qrs    map[string][]byte
+	mu      sync.RWMutex
+	dataDir string
+	images  map[string][]string // screenID -> on-disk file paths
+	qrs     map[string][]byte
 }
 
-func NewStore(screenIDs []string) *Store {
+func NewStore(screenIDs []string, dataDir string) (*Store, error) {
 	s := &Store{
-		images: make(map[string][]ImageEntry, len(screenIDs)),
-		qrs:    make(map[string][]byte, len(screenIDs)),
+		dataDir: dataDir,
+		images:  make(map[string][]string, len(screenIDs)),
+		qrs:     make(map[string][]byte, len(screenIDs)),
 	}
 	for _, id := range screenIDs {
-		s.images[id] = nil
+		dir := filepath.Join(dataDir, id)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("creating dir for screen %s: %w", id, err)
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, fmt.Errorf("reading dir for screen %s: %w", id, err)
+		}
+
+		s.images[id] = make([]string, 0, len(entries))
+		for _, e := range entries {
+			if !e.IsDir() {
+				s.images[id] = append(s.images[id], filepath.Join(dir, e.Name()))
+			}
+		}
 	}
-	return s
+	return s, nil
 }
 
 func (s *Store) SetQR(screenID string, data []byte) {
@@ -33,25 +54,40 @@ func (s *Store) SetQR(screenID string, data []byte) {
 	s.mu.Unlock()
 }
 
-func (s *Store) Add(screenID string, entry ImageEntry) {
+func (s *Store) Add(screenID string, data []byte) error {
+	dir := filepath.Join(s.dataDir, screenID)
+	path := filepath.Join(dir, fmt.Sprintf("%d.bin", time.Now().UnixNano()))
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("writing image: %w", err)
+	}
 	s.mu.Lock()
-	s.images[screenID] = append(s.images[screenID], entry)
+	s.images[screenID] = append(s.images[screenID], path)
 	s.mu.Unlock()
+	return nil
 }
 
 // Random returns a random image for the screen, or the QR code if no images exist.
 func (s *Store) Random(screenID string) (ImageEntry, bool) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	imgs := s.images[screenID]
-	if len(imgs) == 0 {
-		qr, ok := s.qrs[screenID]
-		if !ok {
+	paths := s.images[screenID]
+	var path string
+	if len(paths) > 0 {
+		path = paths[rand.Intn(len(paths))]
+	}
+	qr := s.qrs[screenID]
+	s.mu.RUnlock()
+
+	if path == "" {
+		if qr == nil {
 			return ImageEntry{}, false
 		}
 		return ImageEntry{Data: qr, MIMEType: "image/png"}, true
 	}
-	return imgs[rand.Intn(len(imgs))], true
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ImageEntry{}, false
+	}
+	return ImageEntry{Data: data, MIMEType: http.DetectContentType(data)}, true
 }
 
 func (s *Store) HasScreen(screenID string) bool {
