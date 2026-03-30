@@ -15,6 +15,7 @@ func main() {
 	baseURL := flag.String("base-url", "", "base URL for QR codes (e.g. http://192.168.1.10:8080)")
 	screensFlag := flag.String("screens", "screen1,screen2", "comma-separated screen IDs")
 	dataDir := flag.String("data-dir", "data", "directory to persist uploaded images")
+	adminPassword := flag.String("admin-password", "", "password for the admin panel (leave empty to disable)")
 	flag.Parse()
 
 	if *baseURL == "" {
@@ -57,6 +58,14 @@ func main() {
 	mux.HandleFunc("/api/upload/", h.APIUpload)
 	mux.HandleFunc("/api/qr/", h.APIQr)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	if *adminPassword != "" {
+		auth := func(fn http.HandlerFunc) http.HandlerFunc { return basicAuth(*adminPassword, fn) }
+		mux.HandleFunc("/admin", auth(h.AdminPanel))
+		mux.HandleFunc("/api/admin/image/", auth(h.AdminImage))
+		mux.HandleFunc("/api/admin/delete/", auth(h.AdminDelete))
+		log.Printf("admin panel enabled at /admin")
+	}
 
 	log.Printf("listening on %s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))

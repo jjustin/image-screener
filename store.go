@@ -90,6 +90,53 @@ func (s *Store) Random(screenID string) (ImageEntry, bool) {
 	return ImageEntry{Data: data, MIMEType: http.DetectContentType(data)}, true
 }
 
+// AllImages returns the basenames of all stored images per screen.
+func (s *Store) AllImages() map[string][]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make(map[string][]string, len(s.images))
+	for id, paths := range s.images {
+		names := make([]string, len(paths))
+		for i, p := range paths {
+			names[i] = filepath.Base(p)
+		}
+		out[id] = names
+	}
+	return out
+}
+
+// GetImagePath validates that filename belongs to screenID and returns its full path.
+func (s *Store) GetImagePath(screenID, filename string) (string, bool) {
+	filename = filepath.Base(filename) // sanitize
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, p := range s.images[screenID] {
+		if filepath.Base(p) == filename {
+			return p, true
+		}
+	}
+	return "", false
+}
+
+// Delete removes an image from disk and from the in-memory index.
+func (s *Store) Delete(screenID, filename string) error {
+	filename = filepath.Base(filename) // sanitize
+	path := filepath.Join(s.dataDir, screenID, filename)
+	if err := os.Remove(path); err != nil {
+		return fmt.Errorf("deleting image: %w", err)
+	}
+	s.mu.Lock()
+	paths := s.images[screenID]
+	for i, p := range paths {
+		if filepath.Base(p) == filename {
+			s.images[screenID] = append(paths[:i], paths[i+1:]...)
+			break
+		}
+	}
+	s.mu.Unlock()
+	return nil
+}
+
 func (s *Store) HasScreen(screenID string) bool {
 	s.mu.RLock()
 	_, ok := s.images[screenID]
