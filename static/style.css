@@ -40,17 +40,22 @@
   border-radius: 8px;
   object-fit: contain;
 }
-#file-input {
-  display: none;
+.pick-buttons {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 400px;
 }
 .file-label {
-  display: inline-block;
-  padding: 0.9rem 2rem;
+  flex: 1;
+  padding: 0.9rem 1rem;
   background: #333;
   color: #fff;
+  border: none;
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
+  text-align: center;
 }
 #submit-btn {
   padding: 0.9rem 2rem;

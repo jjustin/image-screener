@@ -47,28 +47,40 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
   <div id="preview-wrap">
     <img id="preview" src="" alt="" hidden>
   </div>
-  <label class="file-label" for="file-input">Choose / Take Photo</label>
-  <input id="file-input" type="file" accept="image/*" capture="environment">
+  <div class="pick-buttons">
+    <button class="file-label" id="btn-camera">Take Photo</button>
+    <button class="file-label" id="btn-gallery">Choose from Gallery</button>
+  </div>
+  <input id="input-camera"  type="file" accept="image/*" capture="environment" hidden>
+  <input id="input-gallery" type="file" accept="image/*" hidden>
   <button id="submit-btn" disabled>Send to Screen</button>
   <p id="status"></p>
   <script>
     const id = {{.IDJson}};
-    const fileInput = document.getElementById('file-input');
-    const preview = document.getElementById('preview');
+    const inputCamera  = document.getElementById('input-camera');
+    const inputGallery = document.getElementById('input-gallery');
+    const preview   = document.getElementById('preview');
     const submitBtn = document.getElementById('submit-btn');
-    const status = document.getElementById('status');
+    const status    = document.getElementById('status');
+    let activeInput = null;
 
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      preview.src = URL.createObjectURL(file);
-      preview.hidden = false;
-      submitBtn.disabled = false;
-      status.textContent = '';
+    document.getElementById('btn-camera').addEventListener('click',  () => { activeInput = inputCamera;  inputCamera.click(); });
+    document.getElementById('btn-gallery').addEventListener('click', () => { activeInput = inputGallery; inputGallery.click(); });
+
+    [inputCamera, inputGallery].forEach(input => {
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        activeInput = input;
+        preview.src = URL.createObjectURL(file);
+        preview.hidden = false;
+        submitBtn.disabled = false;
+        status.textContent = '';
+      });
     });
 
     submitBtn.addEventListener('click', async () => {
-      const file = fileInput.files[0];
+      const file = activeInput && activeInput.files[0];
       if (!file) return;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Uploading...';
@@ -78,9 +90,11 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
         const res = await fetch('/api/upload/' + id, { method: 'POST', body: fd });
         if (res.ok) {
           status.textContent = 'Image sent!';
-          fileInput.value = '';
+          inputCamera.value = '';
+          inputGallery.value = '';
           preview.hidden = true;
           preview.src = '';
+          submitBtn.disabled = true;
         } else {
           status.textContent = 'Error ' + res.status;
           submitBtn.disabled = false;
