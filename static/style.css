@@ -1,0 +1,77 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Screen page ── */
+.screen-body {
+  background: #000;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.screen-body img {
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+/* ── Upload page ── */
+.upload-body {
+  background: #f5f5f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+  gap: 1.2rem;
+}
+.upload-body h1 {
+  font-size: 1.4rem;
+  color: #222;
+}
+#preview-wrap {
+  width: 100%;
+  max-width: 400px;
+}
+#preview {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+}
+#file-input {
+  display: none;
+}
+.file-label {
+  display: inline-block;
+  padding: 0.9rem 2rem;
+  background: #333;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+#submit-btn {
+  padding: 0.9rem 2rem;
+  background: #0066ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  max-width: 400px;
+}
+#submit-btn:disabled { background: #aaa; cursor: default; }
+#status { font-size: 0.95rem; color: #555; }
+
+/* ── Index page ── */
+.index-body {
+  font-family: system-ui, sans-serif;
+  padding: 2rem;
+}
+.index-body h1 { margin-bottom: 1rem; }
+.index-body ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.index-body a { color: #0066ff; text-decoration: none; }
+.index-body a:hover { text-decoration: underline; }
