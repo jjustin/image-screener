@@ -2,7 +2,7 @@
 
 /* ── Screen page ── */
 .screen-body {
-  background: #000;
+  background: transparent;
   width: 100vw;
   height: 100vh;
   display: flex;
