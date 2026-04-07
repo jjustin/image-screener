@@ -39,29 +39,34 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Upload to Screen {{.ID}}</title>
+  <title>Prispevaj</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body class="upload-body">
-  <h1>Screen {{.ID}}</h1>
+  <p class="screen-label">Ma_{{.ID}}</p>
+  <h1 class="upload-title">Prispevaj svoj delček</h1>
+  <p class="upload-subtitle">Izberi trenutek in ga prepusti naključju.<br>Popolno bo prav zato, ker ni načrtovano.</p>
   <div class="pick-buttons">
-    <button class="file-label" id="btn-camera">Take Photo</button>
-    <button class="file-label" id="btn-gallery">Choose from Gallery</button>
-  </div>
-  <div id="preview-wrap">
-    <img id="preview" src="" alt="" hidden>
+    <button class="pick-btn" id="btn-camera">Posnami</button>
+    <button class="pick-btn" id="btn-gallery">Izberi</button>
   </div>
   <input id="input-camera"  type="file" accept="image/*" capture="environment" hidden>
   <input id="input-gallery" type="file" accept="image/*" hidden>
-  <button id="submit-btn" disabled>Send to Screen</button>
-  <p id="status"></p>
+  <div id="preview-wrap" hidden>
+    <img id="preview" src="" alt="">
+  </div>
+  <p id="disclaimer" hidden>S prenosom fotografije dovoljuješ, da tvoj utrinek postane del skupne projekcije. S tem se strinjaš, da tvoje delo postane neločljiv del razstave, se odpoveduješ avtorskim pravicam v sklopu tega projekta in mi pomagaš dokazati, da je lepota v tistem, česar ne moremo nadzorovati.</p>
+  <p id="status" hidden></p>
+  <button id="submit-btn" hidden>Naloži</button>
   <script>
     const id = {{.IDJson}};
     const inputCamera  = document.getElementById('input-camera');
     const inputGallery = document.getElementById('input-gallery');
-    const preview   = document.getElementById('preview');
-    const submitBtn = document.getElementById('submit-btn');
-    const status    = document.getElementById('status');
+    const previewWrap = document.getElementById('preview-wrap');
+    const preview     = document.getElementById('preview');
+    const disclaimer  = document.getElementById('disclaimer');
+    const submitBtn   = document.getElementById('submit-btn');
+    const status      = document.getElementById('status');
     let activeInput = null;
 
     document.getElementById('btn-camera').addEventListener('click',  () => { activeInput = inputCamera;  inputCamera.click(); });
@@ -73,41 +78,47 @@ var uploadTmpl = template.Must(template.New("upload").Parse(`<!DOCTYPE html>
         if (!file) return;
         activeInput = input;
         preview.src = URL.createObjectURL(file);
-        preview.hidden = false;
-        submitBtn.disabled = false;
+        previewWrap.hidden = false;
+        disclaimer.hidden = false;
+        submitBtn.hidden = false;
+        status.hidden = true;
         status.className = '';
-        status.textContent = '';
       });
     });
 
     submitBtn.addEventListener('click', async () => {
       const file = activeInput && activeInput.files[0];
       if (!file) return;
+      submitBtn.textContent = 'Nalagam...';
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Uploading...';
       const fd = new FormData();
       fd.append('image', file);
       try {
         const res = await fetch('/api/upload/' + id, { method: 'POST', body: fd });
         if (res.ok) {
-          status.className = 'success';
-          status.textContent = 'Upload successful. You image will be eventually displayed on the screen.';
           inputCamera.value = '';
           inputGallery.value = '';
-          preview.hidden = true;
+          previewWrap.hidden = true;
           preview.src = '';
-          submitBtn.disabled = true;
+          disclaimer.hidden = true;
+          submitBtn.hidden = true;
+          submitBtn.disabled = false;
+          status.className = 'status-success';
+          status.textContent = 'Tvoja fotografija bo kmalu postala del živega organizma te razstave.';
+          status.hidden = false;
         } else {
-          status.className = 'error';
-          status.textContent = 'Error ' + res.status;
+          status.className = 'status-error';
+          status.textContent = 'Napaka ' + res.status;
+          status.hidden = false;
           submitBtn.disabled = false;
         }
       } catch (e) {
-        status.className = 'error';
-        status.textContent = 'Network error';
+        status.className = 'status-error';
+        status.textContent = 'Napaka omrežja';
+        status.hidden = false;
         submitBtn.disabled = false;
       }
-      submitBtn.textContent = 'Send to Screen';
+      submitBtn.textContent = 'Naloži';
     });
   </script>
 </body>
